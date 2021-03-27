@@ -55,13 +55,13 @@ struct
         fun lexstring s =
           case stream () of
             NONE => error "Unexpected EOF, missing string terminator for open string"
-          | SOME c => let in
+          | SOME c => (
               case c of
                 #"\"" => String.implode (List.rev s)
               | #"\n" => error "Unexpected EOL, missing string terminator for open string"
               | #"\\" => lexstring ((lexescapechar ()) :: s)
               | _ => lexstring (c :: s)
-            end
+            )
 
         (* Unlikely to actually appear in an ML basis string, unless they are using a nonascii
         * file path or spaces. Handle this one day *)
@@ -74,12 +74,18 @@ struct
           | _ => let in
             case stream () of
               NONE => error "Unexpected EOF, missing comment terminator for open comment"
-            | SOME #"*" => let in
-              case stream () of
-                NONE => error "Unexpected EOF, missing comment terminator for open comment"
-              | SOME #")" => lexcomment (level - 1)
-              | _ => lexcomment level
-              end
+            | SOME #"*" => (
+                case stream () of
+                  NONE => error "Unexpected EOF, missing comment terminator for open comment"
+                | SOME #")" => lexcomment (level - 1)
+                | _ => lexcomment level
+              )
+            | SOME #"(" => (
+                case stream () of
+                  NONE => error "Unexpected EOF, missing comment terminator for open comment"
+                | SOME #"*" => lexcomment (level + 1)
+                | _ => lexcomment level
+              )
             | _ => lexcomment level
             end
 
@@ -121,7 +127,7 @@ struct
               (* Anything else would be either a reserved word, or a unquoted path.
               * Here, we lex until a space is reached and try to clasify. *)
               | _ => let
-                  val id = lexid nil
+                  val id = lexid [c]
                 in
                   Token (case Symbols.lookup id of
                     SOME s => s

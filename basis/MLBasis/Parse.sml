@@ -158,14 +158,14 @@ PARSESIG
       (SymAnd, _) => (pop (); parse_id_binds stream bnds because)
     | (SymId s1, _) => (pop ();
         case peek () of
-          (* dervied forms. *)
+          (* derivied forms. *)
           (SymAnd, _) => (pop (); parse_id_binds stream ((s1, s1) :: bnds) because)
         | (SymEq, _) => (pop ();
           case pop () of
             (SymId s2, _) => parse_id_binds stream ((s1, s2) :: bnds) because
           | (s, id_start) => expect_error id_start [SymId "id"] s because
         )
-        | (s, eq_and_start) => expect_error eq_and_start [SymAnd, SymEq] s because
+        | _ => List.rev ((s1, s1) :: bnds)
       )
     | _ => List.rev bnds
 
