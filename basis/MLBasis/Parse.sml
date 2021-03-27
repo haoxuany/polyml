@@ -1,7 +1,19 @@
 
-structure Parse = struct
+functor Parse(
+  structure Lex : LEXSIG
+    where type symbol = Symbols.sym
+) :>
+PARSESIG
+  where type symbol = Symbols.sym
+  and type lex = Lex.lex
+= struct
 
   local open Symbols open Abt open Lex in
+
+  type symbol = sym
+  type range = range
+  type location = location
+  type lex = lex
 
   (* We really should functorize this into a queue library usage,
   * but this is easy for LR(2), and the basis itself doesn't
