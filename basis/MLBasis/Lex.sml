@@ -1,6 +1,10 @@
 
-structure Lex = struct
+(* Imperative lexer for ML Basis symbols. *)
+structure Lex :> LEXSIG where type symbol = Symbols.sym =
+struct
   open Symbols
+
+  type symbol = Symbols.sym
 
   (* haoxuany: imperative, so be careful *)
   type lex =
@@ -13,12 +17,24 @@ structure Lex = struct
   type range = { from : int, to : int }
   type location = { line : range, byte : range }
 
+  exception LexerError of { name : string, lineno : int, byteno : int, msg : string }
   fun error ({name, lineno, byteno, ...}) msg =
-    raise Fail (String.concat [name, ":", Int.toString (!lineno), ":", Int.toString (!byteno), ":", msg])
+    raise LexerError { name = name, lineno = !lineno, byteno = !byteno, msg = msg }
 
   datatype lexstate =
     Token of sym
   | Skip
+
+  fun create { stream, name, lineno, byteno } : lex =
+    { stream = stream, name = name, lineno = ref lineno, byteno = ref byteno }
+
+  (* haoxuany: Probably put this into a ref somewhere? *)
+  val file_extensions = [ ".ml", ".sml", ".mlb", ".sig", ".fun" ]
+
+  (* This isn't comprehensive in requirements, but normal people don't write
+  * modules with names like Foo.sml, so be lenient here. *)
+  fun is_path f =
+    List.exists (fn s => String.isSuffix (s, f)) file_extensions
 
   fun lex ((state as { stream, name, lineno, byteno, ... }) : lex) = let
     (* Eta expanded to get around value restriction *)
@@ -108,9 +124,12 @@ structure Lex = struct
               | _ => let
                   val id = lexid nil
                 in
-                  case Symbols.lookup id of
-                    SOME s => Token s
-                  | NONE => Token (SymPath id)
+                  Token (case Symbols.lookup id of
+                    SOME s => s
+                  | NONE => (
+                    (* Then it's either an unquoted path or id. *)
+                    if isPath id then SymPath id else SymId id
+                  ))
                 end
               end
           end
