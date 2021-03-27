@@ -9,7 +9,6 @@ struct
   (* haoxuany: imperative, so be careful *)
   type lex =
   { stream : unit -> char option
-  , name : string
   , lineno : int ref
   , byteno : int ref
   }
@@ -17,16 +16,16 @@ struct
   type range = { from : int, to : int }
   type location = { line : range, byte : range }
 
-  exception LexerError of { name : string, lineno : int, byteno : int, msg : string }
-  fun error ({name, lineno, byteno, ...}) msg =
-    raise LexerError { name = name, lineno = !lineno, byteno = !byteno, msg = msg }
+  exception LexerError of { lineno : int, byteno : int, msg : string }
+  fun error ({lineno, byteno, ...}) msg =
+    raise LexerError { lineno = !lineno, byteno = !byteno, msg = msg }
 
   datatype lexstate =
     Token of sym
   | Skip
 
-  fun create { stream, name, lineno, byteno } : lex =
-    { stream = stream, name = name, lineno = ref lineno, byteno = ref byteno }
+  fun create { stream, lineno, byteno } : lex =
+    { stream = stream, lineno = ref lineno, byteno = ref byteno }
 
   (* haoxuany: Probably put this into a ref somewhere? *)
   val file_extensions = [ ".ml", ".sml", ".mlb", ".sig", ".fun" ]
@@ -34,9 +33,9 @@ struct
   (* This isn't comprehensive in requirements, but normal people don't write
   * modules with names like Foo.sml, so be lenient here. *)
   fun is_path f =
-    List.exists (fn s => String.isSuffix (s, f)) file_extensions
+    List.exists (fn s => String.isSuffix s f) file_extensions
 
-  fun lex ((state as { stream, name, lineno, byteno, ... }) : lex) = let
+  fun lex ((state as { stream, lineno, byteno, ... }) : lex) = let
     (* Eta expanded to get around value restriction *)
     val error = fn msg => error state msg
 
@@ -128,7 +127,7 @@ struct
                     SOME s => s
                   | NONE => (
                     (* Then it's either an unquoted path or id. *)
-                    if isPath id then SymPath id else SymId id
+                    if is_path id then SymPath id else SymId id
                   ))
                 end
               end

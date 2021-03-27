@@ -8,9 +8,9 @@ signature LEXSIG = sig
 
   type lex
 
-  val create : { stream : unit -> char option, name : string, lineno : int, byteno : int } -> lex
+  val create : { stream : unit -> char option, lineno : int, byteno : int } -> lex
 
-  exception LexerError of { name : string, lineno : int, byteno : int, msg : string }
+  exception LexerError of { lineno : int, byteno : int, msg : string }
 
   val lex : lex -> symbol * location
 end
